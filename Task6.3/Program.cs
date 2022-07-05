@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Task6._3
 {
@@ -14,14 +15,13 @@ namespace Task6._3
 
     class DataBase
     {
-        private bool _isWork = true;
         private List<Player> _players = new List<Player>();
-        private bool _state;
-        private int _result;
-        private string _userInput;
 
         public void Work()
         {
+            int uniqueNumber = 1;
+            bool _isWork = true;
+
             while (_isWork)
             {
                 Console.WriteLine("1 - Добавить игрока \n2 - Сменить статус бана \n3 - Удалить игрока\n4 - Вывести игроков\n5 - выход\nВыберите вариант:");
@@ -32,6 +32,7 @@ namespace Task6._3
                 {
                     case "1":
                         AddPlayer();
+                        uniqueNumber++;
                         break;
                     case "2":
                         SetPlayerBanStatus();
@@ -47,7 +48,7 @@ namespace Task6._3
                         _isWork = false;
                         break;
                     default:
-                        GetMessage("Данные не корректны");
+                        WriteError();
                         break;
                 }
             }
@@ -55,76 +56,73 @@ namespace Task6._3
 
         private void AddPlayer()
         {
-            string name;
-            Console.WriteLine("Введите имя игрока:");
-            name = Console.ReadLine();
-            Console.WriteLine("Введите уровень игрока:");
-            _state = CheckState();
+            int result = 0;
 
-            if (_state)
+            Console.WriteLine("Введите имя игрока:");
+            string name = Console.ReadLine();
+            Console.WriteLine("Введите уровень игрока:");
+
+            if (CheckState(ref result))
             {
-                _players.Add(new Player(name, _result));
+                _players.Add(new Player(name, result));
                 GetMessage("Игрок добавлен!");
             }
             else
             {
-                GetMessage("Введите корректные данные.");
+                WriteError();
             }
         }
 
         private void SetPlayerBanStatus()
         {
-            if (_players.Count > 0)
-            {
-                ShowDetails();
-                Console.WriteLine("Чтобы изменить статус бана персонажа, напишите его порядковый номер:");
-                _state = CheckState();
+            ShowDetails();
+            Console.WriteLine("Чтобы изменить статус бана персонажа, напишите его уникальный номер:");
+            string uniqueNumber = Console.ReadLine();
 
-                if (_state && (_result - 1) < _players.Count)
-                {
-                    if (_players[_result - 1].IsBanned == false)
-                    {
-                        _players[_result - 1].Ban();
-                    }
-                    else
-                    {
-                        _players[_result - 1].UnBan();
-                    }
-                    GetMessage("Успешно!");
-                }
-                else
-                {
-                    GetMessage("Данные не корректны.");
-                }
+            if (TryGetPlayer(out Player player, uniqueNumber))
+            {
+                player.Ban();
             }
             else
             {
-                GetMessage("Игроков нет.");
+                player.UnBan();
             }
+            GetMessage("Успешно!");
         }
 
         private void RemovePlayer()
         {
-            if (_players.Count > 0)
-            {
-                ShowDetails();
-                Console.WriteLine("Чтобы удалить игрока, напишите его порядковый номер:");
-                _state = CheckState();
+            ShowDetails();
+            Console.WriteLine("Чтобы удалить игрока, напишите его уникальный номер:");
+            string uniqueNumber = Console.ReadLine();
 
-                if (_state && (_result - 1) < _players.Count)
-                {
-                    _players.RemoveAt(_result - 1);
-                    GetMessage("Успех!");
-                }
-                else
-                {
-                    GetMessage("Данные не корректны.");
-                }
+            if (TryGetPlayer(out Player player, uniqueNumber))
+            {
+                _players.Remove(player);
+                GetMessage("Успех!");
             }
             else
             {
-                GetMessage("Игроков нет.");
+                WriteError();
             }
+        }
+
+        private bool TryGetPlayer(out Player player, string uniqueNumber)
+        {
+            player = null;
+
+            int.TryParse(uniqueNumber, out int number);
+
+            for (int i = 0; i < _players.Count; i++)
+            {
+                if (_players.ElementAt(i).UniqueNumber == number)
+                {
+                    player = _players[i];
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void ShowDetails()
@@ -133,16 +131,15 @@ namespace Task6._3
 
             for (int i = 0; i < _players.Count; i++)
             {
-                Console.Write(i + 1 + ".");
                 _players[i].ShowInfo();
             }
         }
 
-        private bool CheckState()
+        private bool CheckState(ref int result)
         {
-            _userInput = Console.ReadLine();
-            _state = int.TryParse(_userInput, out _result);
-            return _state;
+            string userInput = Console.ReadLine();
+            bool state = int.TryParse(userInput, out result);
+            return state;
         }
 
         private void GetMessage(string text = "")
@@ -152,19 +149,29 @@ namespace Task6._3
             Console.ReadKey();
             Console.Clear();
         }
+
+        private void WriteError()
+        {
+            GetMessage("Введите корректные данные!");
+        }
     }
 
 }
 class Player
 {
+    private static int _uniqueNumber;
     private string _name;
     private int _level;
     private string _stateOfBan;
 
     public bool IsBanned { get; private set; }
 
+    public int UniqueNumber { get; set; }
+
     public Player(string name, int level)
     {
+
+        UniqueNumber = ++_uniqueNumber;
         _name = name;
         _level = level;
         IsBanned = false;
@@ -190,6 +197,6 @@ class Player
             _stateOfBan = "не забанен";
         }
 
-        Console.WriteLine($"Имя - {_name}. Уровень - {_level}. Статус бана - {_stateOfBan}. ");
+        Console.WriteLine($"{UniqueNumber}.Имя - {_name}. Уровень - {_level}. Статус бана - {_stateOfBan}. ");
     }
 }
